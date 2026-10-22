@@ -1,0 +1,43 @@
+#!/usr/bin/env lua
+-- Entrypoint. Resolves symlinks (it is usually linked into ~/.local/bin)
+-- to find the source tree next to it.
+
+local function quote(s)
+  return "'" .. s:gsub("'", "'\\''") .. "'"
+end
+
+local function readlink(path)
+  local p = io.popen("readlink " .. quote(path) .. " 2>/dev/null", "r")
+  if not p then
+    return nil
+  end
+  local out = (p:read("*a") or ""):gsub("%s+$", "")
+  p:close()
+  return out ~= "" and out or nil
+end
+
+local function dirname(path)
+  return path:match("^(.*)/[^/]*$") or "."
+end
+
+local script = arg[0]
+if script:sub(1, 1) ~= "/" then
+  script = (os.getenv("PWD") or ".") .. "/" .. script
+end
+for _ = 1, 20 do
+  local target = readlink(script)
+  if not target then
+    break
+  end
+  if target:sub(1, 1) == "/" then
+    script = target
+  else
+    script = dirname(script) .. "/" .. target
+  end
+end
+
+local root = dirname(dirname(script))
+package.path = root .. "/src/?.lua;" .. root .. "/src/?/init.lua;" .. package.path
+
+local cli = require("notifyq.cli")
+os.exit(cli.main(arg, { script = script, root = root }))
