@@ -60,17 +60,60 @@ up automatically.
 
 ## Use it from Claude Code
 
-Run it from a hook to be told when Claude needs you, for example in
+There are two ways to get notified by Claude Code. Pick one, or combine them.
+
+### Option 1: instructions in `CLAUDE.md` (notify only when it matters)
+
+Tell Claude about the tool and when to use it. It will run `notifyq` on its own,
+for example when you ask it to watch a pipeline and tell you when it finishes,
+instead of notifying after every reply.
+
+Add this to `~/.claude/CLAUDE.md` (all projects) or to a project's `CLAUDE.md`:
+
+```markdown
+## Notifications (notifyq)
+- The `notifyq` command shows a system notification:
+  `notifyq add "Title" -s "Subtitle" [--in 10m | --at 18:30]`. Only the title is required.
+- Use it **only** when I explicitly ask to be notified ("tell me when it finishes",
+  "watch the pipeline and notify me") or when I stepped away and you are waiting on
+  something long that I asked you to follow. Do not notify at the end of every reply.
+- To follow something (pipeline, deploy, build), poll it or use a background monitor and
+  run `notifyq add` when the result is known, whether it succeeded or failed. Put the
+  result in the title (e.g. "Pipeline failed") and the project or job name in the subtitle.
+- If you need a decision from me and I am away, notify me before you wait.
+```
+
+Then allow the command so Claude does not ask for approval each time, in
 `~/.claude/settings.json`:
 
 ```json
 {
-  "hooks": {
-    "Notification": [{ "hooks": [{ "type": "command", "command": "notifyq add 'Claude needs your approval'" }] }],
-    "Stop": [{ "hooks": [{ "type": "command", "command": "notifyq add 'Claude finished the task'" }] }]
+  "permissions": {
+    "allow": ["Bash(notifyq add:*)"]
   }
 }
 ```
+
+Claude can only notify while its session is running, and this does not cover tool
+permission prompts, because Claude is paused while it waits for your answer. Use
+Option 2 for those.
+
+### Option 2: hooks (automatic)
+
+Hooks run `notifyq` without Claude having to decide anything. `Notification` fires
+when Claude needs permission or is waiting for you, and `Stop` fires every time
+Claude finishes a reply, so it can be noisy. Add them to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Notification": [{ "hooks": [{ "type": "command", "command": "notifyq add 'Claude needs you'" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "notifyq add 'Claude finished'" }] }]
+  }
+}
+```
+
+Keep only `Notification` if you want to hear about approvals but not every reply.
 
 ## Tests
 
