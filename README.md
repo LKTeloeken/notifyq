@@ -122,3 +122,7 @@ lua tests/run.lua
 ```
 
 The tests use a temporary queue and a fake backend, so they never show notifications.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
